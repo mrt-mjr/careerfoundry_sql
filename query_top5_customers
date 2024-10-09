@@ -1,4 +1,5 @@
-# a query to find the top 5 customers from the top 10 cities who’ve paid the highest total amounts to Rockbuster. The customer team would like to reward them for their loyalty!
+-- a query to find the top 5 customers from the top 10 cities who’ve paid the highest total amounts to Rockbuster. 
+-- the customer team would like to reward them for their loyalty!
 
 WITH TopCountries AS (
     -- Step 1: Identify the top 10 countries by customer count
