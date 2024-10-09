@@ -1,0 +1,37 @@
+# The following query retrieves the top 10 cities that fall within the top 10 countries by customer count:
+
+SELECT 
+    ci.city,
+    co.country,
+    COUNT(c.customer_id) AS customer_count
+FROM 
+    customer AS c
+INNER JOIN 
+    address AS a ON a.address_id = c.address_id
+INNER JOIN
+    city AS ci ON ci.city_id = a.city_id
+INNER JOIN
+    country AS co ON co.country_id = ci.country_id
+WHERE 
+    co.country IN (
+        SELECT 
+            co.country
+        FROM 
+            customer AS c
+        INNER JOIN 
+            address AS a ON a.address_id = c.address_id
+        INNER JOIN
+            city AS ci ON ci.city_id = a.city_id
+        INNER JOIN
+            country AS co ON co.country_id = ci.country_id
+        GROUP BY 
+            co.country
+        ORDER BY 
+            COUNT(c.customer_id) DESC
+        LIMIT 10
+    )
+GROUP BY 
+    ci.city, co.country
+ORDER BY 
+    customer_count DESC
+LIMIT 10;
