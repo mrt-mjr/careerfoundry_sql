@@ -1,4 +1,4 @@
-# The following query retrieves the top 10 cities that fall within the top 10 countries by customer count:
+-- The following query retrieves the top 10 cities that fall within the top 10 countries by customer count
 
 SELECT 
     ci.city,
