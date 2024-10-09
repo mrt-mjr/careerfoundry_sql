@@ -1,4 +1,4 @@
-# the average amount paid by the top 5 customers
+-- the average amount paid by the top 5 customers
 
 SELECT
 	ROUND(AVG(total_amount_paid),2) as average_amount_paid
