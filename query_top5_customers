@@ -1,0 +1,73 @@
+# a query to find the top 5 customers from the top 10 cities who’ve paid the highest total amounts to Rockbuster. The customer team would like to reward them for their loyalty!
+
+WITH TopCountries AS (
+    -- Step 1: Identify the top 10 countries by customer count
+    SELECT 
+        co.country_id,
+        co.country,
+        COUNT(c.customer_id) AS customer_count
+    FROM 
+        customer AS c
+    INNER JOIN 
+        address AS a ON c.address_id = a.address_id
+    INNER JOIN
+        city AS ci ON a.city_id = ci.city_id
+    INNER JOIN
+        country AS co ON ci.country_id = co.country_id
+    GROUP BY 
+        co.country_id, co.country
+    ORDER BY 
+        customer_count DESC
+    LIMIT 10
+),
+TopCities AS (
+    -- Step 2: Identify the top 10 cities within those top 10 countries by customer count and total payments
+    SELECT 
+        ci.city_id,
+        ci.city,
+        co.country_id,
+        co.country,
+        COUNT(c.customer_id) AS customer_count,
+        SUM(p.amount) AS total_spent
+    FROM 
+        payment AS p
+    INNER JOIN 
+        customer AS c ON p.customer_id = c.customer_id
+    INNER JOIN 
+        address AS a ON c.address_id = a.address_id
+    INNER JOIN
+        city AS ci ON a.city_id = ci.city_id
+    INNER JOIN
+        country AS co ON ci.country_id = co.country_id
+    WHERE 
+        co.country_id IN (SELECT country_id FROM TopCountries)
+    GROUP BY 
+        ci.city_id, ci.city, co.country_id, co.country
+    ORDER BY 
+        customer_count DESC, total_spent DESC
+    LIMIT 10
+)
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    ci.city,
+    co.country,
+    SUM(p.amount) AS total_amount_paid
+FROM 
+    payment AS p
+INNER JOIN 
+    customer AS c ON p.customer_id = c.customer_id
+INNER JOIN 
+    address AS a ON c.address_id = a.address_id
+INNER JOIN
+    city AS ci ON a.city_id = ci.city_id
+INNER JOIN
+    country AS co ON ci.country_id = co.country_id
+WHERE 
+    ci.city_id IN (SELECT city_id FROM TopCities)
+GROUP BY 
+    c.customer_id, c.first_name, c.last_name, ci.city, co.country
+ORDER BY 
+    total_amount_paid DESC
+LIMIT 5;
