@@ -1,0 +1,81 @@
+-- Find out how many of the top 5 customers you identified in step 1 are based within each country. Rewrite using CTEs
+
+WITH TopCountries AS (
+    SELECT 
+        co.country_id,
+        co.country
+    FROM 
+        customer AS c
+    INNER JOIN 
+        address AS a ON c.address_id = a.address_id
+    INNER JOIN
+        city AS ci ON a.city_id = ci.city_id
+    INNER JOIN
+        country AS co ON ci.country_id = co.country_id
+    GROUP BY 
+        co.country_id, co.country
+    ORDER BY 
+        COUNT(c.customer_id) DESC
+    LIMIT 10
+),
+TopCities AS (
+    SELECT 
+        ci.city_id
+    FROM 
+        customer AS c
+    INNER JOIN 
+        address AS a ON c.address_id = a.address_id
+    INNER JOIN
+        city AS ci ON a.city_id = ci.city_id
+    INNER JOIN
+        country AS co ON ci.country_id = co.country_id
+    WHERE 
+        co.country_id IN (SELECT country_id FROM TopCountries)
+    GROUP BY 
+        ci.city_id
+    ORDER BY 
+        COUNT(c.customer_id) DESC
+    LIMIT 10
+),
+TopCustomers AS (
+    SELECT 
+        c.customer_id,
+        co.country_id
+    FROM 
+        payment AS p
+    INNER JOIN 
+        customer AS c ON p.customer_id = c.customer_id
+    INNER JOIN 
+        address AS a ON c.address_id = a.address_id
+    INNER JOIN
+        city AS ci ON a.city_id = ci.city_id
+    INNER JOIN
+        country AS co ON ci.country_id = co.country_id
+    WHERE 
+        co.country_id IN (SELECT country_id FROM TopCountries)
+    AND 
+        ci.city_id IN (SELECT city_id FROM TopCities)
+    GROUP BY 
+        c.customer_id, co.country_id
+    ORDER BY 
+        SUM(p.amount) DESC
+    LIMIT 5
+)
+SELECT
+    tc.country,
+    COUNT(c.customer_id) AS all_customer_count,
+    COUNT(top_customers.customer_id) AS top_customer_count
+FROM 
+    TopCountries AS tc
+INNER JOIN 
+    customer AS c ON c.address_id IN (
+        SELECT a.address_id
+        FROM address AS a
+        INNER JOIN city AS ci ON a.city_id = ci.city_id
+        WHERE ci.country_id = tc.country_id
+    )
+LEFT JOIN TopCustomers AS top_customers ON c.customer_id = top_customers.customer_id
+GROUP BY 
+    tc.country
+ORDER BY 
+    top_customer_count DESC, all_customer_count DESC;
