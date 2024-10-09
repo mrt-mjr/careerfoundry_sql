@@ -1,0 +1,127 @@
+-- how many of the top 5 customers are based within each country
+
+SELECT
+    co.country,
+    COUNT(c.customer_id) AS all_customer_count,
+    COUNT(top_customers.customer_id) AS top_customer_count
+FROM 
+    customer AS c
+INNER JOIN 
+    address AS a ON c.address_id = a.address_id
+INNER JOIN
+    city AS ci ON a.city_id = ci.city_id
+INNER JOIN
+    country AS co ON ci.country_id = co.country_id
+LEFT JOIN (
+    -- Subquery to identify the top 5 customers
+    SELECT 
+        c.customer_id,
+        co.country_id
+    FROM 
+        payment AS p
+    INNER JOIN 
+        customer AS c ON p.customer_id = c.customer_id
+    INNER JOIN 
+        address AS a ON c.address_id = a.address_id
+    INNER JOIN
+        city AS ci ON a.city_id = ci.city_id
+    INNER JOIN
+        country AS co ON ci.country_id = co.country_id
+    WHERE 
+        co.country_id IN (
+            -- Top 10 Countries by customer count
+            SELECT country_id 
+            FROM (
+                SELECT 
+                    co.country_id
+                FROM 
+                    customer AS c
+                INNER JOIN 
+                    address AS a ON c.address_id = a.address_id
+                INNER JOIN
+                    city AS ci ON a.city_id = ci.city_id
+                INNER JOIN
+                    country AS co ON ci.country_id = co.country_id
+                GROUP BY 
+                    co.country_id
+                ORDER BY 
+                    COUNT(c.customer_id) DESC
+                LIMIT 10
+            ) AS TopCountries
+        )
+    AND 
+        ci.city_id IN (
+            -- Top 10 Cities by customer count within those countries
+            SELECT city_id 
+            FROM (
+                SELECT 
+                    ci.city_id
+                FROM 
+                    customer AS c
+                INNER JOIN 
+                    address AS a ON c.address_id = a.address_id
+                INNER JOIN
+                    city AS ci ON a.city_id = ci.city_id
+                INNER JOIN
+                    country AS co ON ci.country_id = co.country_id
+                WHERE 
+                    co.country_id IN (
+                        -- Top 10 Countries by customer count
+                        SELECT country_id 
+                        FROM (
+                            SELECT 
+                                co.country_id
+                            FROM 
+                                customer AS c
+                            INNER JOIN 
+                                address AS a ON c.address_id = a.address_id
+                            INNER JOIN
+                                city AS ci ON a.city_id = ci.city_id
+                            INNER JOIN
+                                country AS co ON ci.country_id = co.country_id
+                            GROUP BY 
+                                co.country_id
+                            ORDER BY 
+                                COUNT(c.customer_id) DESC
+                            LIMIT 10
+                        ) AS TopCountries
+                    )
+                GROUP BY 
+                    ci.city_id
+                ORDER BY 
+                    COUNT(c.customer_id) DESC
+                LIMIT 10
+            ) AS TopCities
+        )
+    GROUP BY 
+        c.customer_id, co.country_id
+    ORDER BY 
+        SUM(p.amount) DESC
+    LIMIT 5
+) AS top_customers ON c.customer_id = top_customers.customer_id
+WHERE 
+    co.country_id IN (
+        -- Filter the main query to only include the top 10 countries
+        SELECT country_id 
+        FROM (
+            SELECT 
+                co.country_id
+            FROM 
+                customer AS c
+            INNER JOIN 
+                address AS a ON c.address_id = a.address_id
+            INNER JOIN
+                city AS ci ON a.city_id = ci.city_id
+            INNER JOIN
+                country AS co ON ci.country_id = co.country_id
+            GROUP BY 
+                co.country_id
+            ORDER BY 
+                COUNT(c.customer_id) DESC
+            LIMIT 10
+        ) AS FinalTopCountries
+    )
+GROUP BY 
+    co.country
+ORDER BY 
+    top_customer_count DESC, all_customer_count DESC;
